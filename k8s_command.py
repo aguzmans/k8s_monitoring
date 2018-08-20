@@ -18,13 +18,24 @@ class Kubernetes_monitoring:
     def __get_parameters(self):
         parser_object = argparse.ArgumentParser()
         parser_object.add_argument('Parameter1', metavar='N', nargs='+',
-                   help='first parameter')
+                   help='Parameter1 is the list of pods to check formated item=X&item2=Y. '
+                        'The secons space separated element is the path to kubectl config '
+                        'The third parameters is the namespace to search.')
         args = parser_object.parse_args()
         args_list, unknown = parser_object.parse_known_args()
         return args_list
 
+    def stip_kubectl_output(self, kubectloutput):
+        k8s_output_command = string.split(kubectloutput[1], '\n')
+        header = filter(None,k8s_output_command[0].split(' '))
+        position_name = [index for index, s in enumerate(header) if s == 'NAME']
+        position_ready = [index for index, s in enumerate(header) if s == 'READY']
+        print position_name, position_ready
+
+
     def lists_kube_vs_zabbix(self, k8s_output, zabbix_list):
         result_list = list()
+        print k8s_output
         date = tuple()
         found = False
         for ikey, ival in enumerate(zabbix_list):
@@ -90,30 +101,41 @@ if __name__ == '__main__':
     #declare main monitoring script
     kube_obj = Kubernetes_monitoring()
     # Gep HEX param and attempt to convert to normal string
-    hex_chain = kube_obj.args_list.Parameter1
+    parameters = kube_obj.args_list.Parameter1
+    #print hex_chain
     key_chain = ''
     return_value = 'OK'
     try:
-        key_chain = hex_chain[0].decode("hex")
+        key_chain = parameters[0].decode("hex")
     except Exception, e:
         return_value = str(e)
         return_value = 'FAIL'
         exit()
 
-    # Key chain
-    if key_chain == "kubernetes":
+
+    if key_chain == '' or  key_chain == None:
         #should never happen is a test value
-        print "99999"
-    elif key_chain == "0":
-        print return_value
+        print "4444"
     else:
         if return_value == 'OK':
             atool = Tools()
             pods_to_check = atool.convert_string_to_list_bidimentional(key_chain, "&", "=")
             # k8s_command = atool.main_execution_function("kubectl --kubeconfig=/var/lib/nc_zabbix/.kube/config_boka get pods --namespace=boka-prod")
-            k8s_command = atool.main_execution_function("kubectl get pods --namespace=boka-prod")
-            k8s_output_command = string.split(k8s_command[1],'\n')
-            k8s_output_command = k8s_output_command[1:]
-            kube_obj.lists_kube_vs_zabbix(k8s_output_command, pods_to_check)
-        else:
-            print return_value
+            # Check if path to kubectl config was given.
+            k8s_config_path = ''
+            if len(parameters) >= 2:
+                if os.path.exists(parameters[1]):
+                    k8s_config_path = '--kubeconfig=' + parameters[1]
+            # Check if namespace parameter was passed
+            k8s_nemespace = ''
+            if len(parameters) >= 3:
+                if parameters[2] != '':
+                    k8s_nemespace = '--namespace=' + parameters[2]
+            k8s_command = atool.main_execution_function('kubectl ' + k8s_config_path +' get pods ' + k8s_nemespace)
+            kube_obj.stip_kubectl_output(k8s_command)
+        #     if len(k8s_output_command) >= 1:
+        #         kube_obj.lists_kube_vs_zabbix(k8s_output_command, pods_to_check)
+        #     else:
+        #         print 'No pods found in namespace'
+        # else:
+        #     print return_value
