@@ -1,16 +1,16 @@
 #!/usr/bin/python
-#####################################
+###########################################
 # Zabbix agent kubectl monitoring script  #
-#####################################
+###########################################
 # Standard imports
 import argparse
 import os
-import subprocess
 import string
-import collections
 
+# Specific imports from standard libraries
 from subprocess import check_output, CalledProcessError
 
+# No personal imports
 
 class Kubernetes_monitoring:
     def __init__(self):
@@ -62,16 +62,15 @@ class Kubernetes_monitoring:
     def k8s_vs_zabbix_output(self, zabbix_list, k8s_list):
         """Function to compare the kubernetes output @k8s_list and the zabbix macro @zabbix_list this retusn the same
         Zabbix list with a third value set to True or False in @zabbix_list at return time"""
-        exist_in_k8s = False
         for key_zabbix, a_zabbix_service in enumerate(zabbix_list):
             # print a_zabbix_service
+            exist_in_k8s = False
             count = len(k8s_list)
             found = 0
             for i_k8s in range(0, count):
                 if a_zabbix_service[0] in k8s_list[i_k8s][0]:
                     found += int(k8s_list[i_k8s][1][0])
                 if count - 1 == i_k8s and found > 0:
-                    # print 'last and found: ', found
                     if found >= int(a_zabbix_service[1]):
                         exist_in_k8s = True
             a_zabbix_service.append(exist_in_k8s)
@@ -134,7 +133,6 @@ if __name__ == '__main__':
             atool = Tools()
             # Get the zabbix post in list format from a string
             zabbix_pods_to_check = atool.convert_string_to_list_bidimentional(key_chain, "&", "=")
-            # k8s_command = atool.main_execution_function("kubectl --kubeconfig=/var/lib/nc_zabbix/.kube/config_boka get pods --namespace=boka-prod")
             # Check if path to kubectl config was given.
             k8s_config_path = ''
             if len(parameters) >= 2:
@@ -153,11 +151,11 @@ if __name__ == '__main__':
             # ZABBIX should vs Actual running
             k8s_running_result = kube_obj.k8s_vs_zabbix_output(zabbix_pods_to_check, k8s_clean_list)
 
-            # print k8s_running_result
+            # check if all is OK or some are Fail
             counter_final = len(k8s_running_result)
             global_success = False
             for key_result, a_k8s_running_result in enumerate(k8s_running_result):
-                if k8s_running_result[key_result][2] == False:
+                if not k8s_running_result[key_result][2]:
                     print 'Fail'
                     break
                 elif k8s_running_result[key_result][2] == True and counter_final - 1 == key_result:
