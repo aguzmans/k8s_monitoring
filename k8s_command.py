@@ -109,58 +109,70 @@ class Tools:
         return return_code, stdout, 'stderr: ' + str(stderr)
 
     def hex_to_test(self, hex_string):
+        """Convert text from zabbix HEX string"""
         try:
             key_chain = hex_string.decode("hex")
         except Exception, e:
             key_chain = 'Fail ' + str(e)
         return key_chain
+try:
+    if __name__ == '__main__':
+        # declare main monitoring script
+        kube_obj = Kubernetes_monitoring()
+        atool = Tools()
+        # Gep HEX param and attempt to convert to normal string
+        parameters = kube_obj.args_list.Parameter1
+        print parameters
+        key_chain = ''
+        return_value = 'OK'
+        if len(parameters) >= 1:
+            key_chain = atool.hex_to_test(parameters[0])
+        else:
+            key_chain = 'nginx=2'
+        if len(parameters) >= 2:
+            kubectlp_config_path = atool.hex_to_test(parameters[1])
+        else:
+            kubectlp_config_path = '/var/lib/nc_zabbix/.kube/config'
+        if len(parameters) >= 3:
+            k8s_namespace = atool.hex_to_test(parameters[2])
+        else:
+            k8s_namespace = ''
 
-if __name__ == '__main__':
-    # declare main monitoring script
-    kube_obj = Kubernetes_monitoring()
-    atool = Tools()
-    # Gep HEX param and attempt to convert to normal string
-    parameters = kube_obj.args_list.Parameter1
-    key_chain = ''
-    return_value = 'OK'
-    key_chain = atool.hex_to_test(parameters[0])
-    kubectlp_config_path = atool.hex_to_test(parameters[1])
-    k8s_namespace =  atool.hex_to_test(parameters[2])
 
+        if key_chain == '' or key_chain == None:
+            # should never happen is a test value
+            print "4444"
+        else:
+            if return_value == 'OK':
 
-    if key_chain == '' or key_chain == None:
-        # should never happen is a test value
-        print "4444"
-    else:
-        if return_value == 'OK':
+                # Get the zabbix post in list format from a string
+                zabbix_pods_to_check = atool.convert_string_to_list_bidimentional(key_chain, "&", "=")
+                # Check if path to kubectl config was given.
+                k8s_config_path = ''
+                if kubectlp_config_path:
+                    if os.path.exists(kubectlp_config_path):
+                        k8s_config_path = '--kubeconfig=' + kubectlp_config_path
+                # Check if namespace parameter was passed
+                k8s_nemespace = ''
+                if k8s_namespace:
+                    if k8s_namespace != '':
+                        k8s_nemespace = '--namespace=' + k8s_namespace
+                k8s_command = atool.main_execution_function('kubectl ' + k8s_config_path + ' get pods ' + k8s_nemespace)
+                # remove not needed stuff from kubernetes output
+                k8s_clean_ouput = kube_obj.strip_kubectl_output(k8s_command)
+                # Change the 1/2 format to array to make processing easier.
+                k8s_clean_list = kube_obj.split_ready_vs_ready(k8s_clean_ouput, 1)
+                # ZABBIX should vs Actual running
+                k8s_running_result = kube_obj.k8s_vs_zabbix_output(zabbix_pods_to_check, k8s_clean_list)
 
-            # Get the zabbix post in list format from a string
-            zabbix_pods_to_check = atool.convert_string_to_list_bidimentional(key_chain, "&", "=")
-            # Check if path to kubectl config was given.
-            k8s_config_path = ''
-            if kubectlp_config_path:
-                if os.path.exists(kubectlp_config_path):
-                    k8s_config_path = '--kubeconfig=' + kubectlp_config_path
-            # Check if namespace parameter was passed
-            k8s_nemespace = ''
-            if k8s_namespace:
-                if k8s_namespace != '':
-                    k8s_nemespace = '--namespace=' + k8s_namespace
-            k8s_command = atool.main_execution_function('kubectl ' + k8s_config_path + ' get pods ' + k8s_nemespace)
-            # remove not needed stuff from kubernetes output
-            k8s_clean_ouput = kube_obj.strip_kubectl_output(k8s_command)
-            # Change the 1/2 format to array to make processing easier.
-            k8s_clean_list = kube_obj.split_ready_vs_ready(k8s_clean_ouput, 1)
-            # ZABBIX should vs Actual running
-            k8s_running_result = kube_obj.k8s_vs_zabbix_output(zabbix_pods_to_check, k8s_clean_list)
-
-            # check if all is OK or some are Fail
-            counter_final = len(k8s_running_result)
-            global_success = False
-            for key_result, a_k8s_running_result in enumerate(k8s_running_result):
-                if not k8s_running_result[key_result][2]:
-                    print 'Fail'
-                    break
-                elif k8s_running_result[key_result][2] == True and counter_final - 1 == key_result:
-                    print 'OK'
-
+                # Check if all is OK or some are Failed
+                counter_final = len(k8s_running_result)
+                global_success = False
+                for key_result, a_k8s_running_result in enumerate(k8s_running_result):  # type: (int, object)
+                    if not k8s_running_result[key_result][2]:
+                        print 'Fail'
+                        break
+                    elif k8s_running_result[key_result][2] == True and counter_final - 1 == key_result:
+                        print 'OK'
+except Exception, e:
+    print 'Fail ' + str(e)
