@@ -163,3 +163,4 @@ if __name__ == '__main__':
                     break
                 elif k8s_running_result[key_result][2] == True and counter_final - 1 == key_result:
                     print 'OK'
+
