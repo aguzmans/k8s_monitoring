@@ -122,7 +122,6 @@ try:
         atool = Tools()
         # Gep HEX param and attempt to convert to normal string
         parameters = kube_obj.args_list.Parameter1
-        print parameters
         key_chain = ''
         return_value = 'OK'
         if len(parameters) >= 1:
@@ -137,7 +136,6 @@ try:
             k8s_namespace = atool.hex_to_test(parameters[2])
         else:
             k8s_namespace = ''
-
 
         if key_chain == '' or key_chain == None:
             # should never happen is a test value
