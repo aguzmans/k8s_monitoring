@@ -63,7 +63,6 @@ class Kubernetes_monitoring:
         """Function to compare the kubernetes output @k8s_list and the zabbix macro @zabbix_list this retusn the same
         Zabbix list with a third value set to True or False in @zabbix_list at return time"""
         for key_zabbix, a_zabbix_service in enumerate(zabbix_list):
-            # print a_zabbix_service
             exist_in_k8s = False
             count = len(k8s_list)
             found = 0
@@ -109,40 +108,44 @@ class Tools:
             stderr = e.output
         return return_code, stdout, 'stderr: ' + str(stderr)
 
+    def hex_to_test(self, hex_string):
+        try:
+            key_chain = hex_string.decode("hex")
+        except Exception, e:
+            key_chain = 'Fail ' + str(e)
+        return key_chain
 
 if __name__ == '__main__':
     # declare main monitoring script
     kube_obj = Kubernetes_monitoring()
+    atool = Tools()
     # Gep HEX param and attempt to convert to normal string
     parameters = kube_obj.args_list.Parameter1
-    # print hex_chain
     key_chain = ''
     return_value = 'OK'
-    try:
-        key_chain = parameters[0].decode("hex")
-    except Exception, e:
-        return_value = str(e)
-        return_value = 'FAIL'
-        exit()
+    key_chain = atool.hex_to_test(parameters[0])
+    kubectlp_config_path = atool.hex_to_test(parameters[1])
+    k8s_namespace =  atool.hex_to_test(parameters[2])
+
 
     if key_chain == '' or key_chain == None:
         # should never happen is a test value
         print "4444"
     else:
         if return_value == 'OK':
-            atool = Tools()
+
             # Get the zabbix post in list format from a string
             zabbix_pods_to_check = atool.convert_string_to_list_bidimentional(key_chain, "&", "=")
             # Check if path to kubectl config was given.
             k8s_config_path = ''
             if len(parameters) >= 2:
                 if os.path.exists(parameters[1]):
-                    k8s_config_path = '--kubeconfig=' + parameters[1]
+                    k8s_config_path = '--kubeconfig=' + kubectlp_config_path
             # Check if namespace parameter was passed
             k8s_nemespace = ''
             if len(parameters) >= 3:
                 if parameters[2] != '':
-                    k8s_nemespace = '--namespace=' + parameters[2]
+                    k8s_nemespace = '--namespace=' + k8s_namespace
             k8s_command = atool.main_execution_function('kubectl ' + k8s_config_path + ' get pods ' + k8s_nemespace)
             # remove not needed stuff from kubernetes output
             k8s_clean_ouput = kube_obj.strip_kubectl_output(k8s_command)
