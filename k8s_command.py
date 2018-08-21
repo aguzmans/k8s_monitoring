@@ -138,13 +138,13 @@ if __name__ == '__main__':
             zabbix_pods_to_check = atool.convert_string_to_list_bidimentional(key_chain, "&", "=")
             # Check if path to kubectl config was given.
             k8s_config_path = ''
-            if len(parameters) >= 2:
-                if os.path.exists(parameters[1]):
+            if kubectlp_config_path:
+                if os.path.exists(kubectlp_config_path):
                     k8s_config_path = '--kubeconfig=' + kubectlp_config_path
             # Check if namespace parameter was passed
             k8s_nemespace = ''
-            if len(parameters) >= 3:
-                if parameters[2] != '':
+            if k8s_namespace:
+                if k8s_namespace != '':
                     k8s_nemespace = '--namespace=' + k8s_namespace
             k8s_command = atool.main_execution_function('kubectl ' + k8s_config_path + ' get pods ' + k8s_nemespace)
             # remove not needed stuff from kubernetes output
