@@ -2,6 +2,7 @@
 ###########################################
 # Zabbix agent kubectl monitoring script  #
 ###########################################
+
 # Standard imports
 import argparse
 import os
@@ -115,6 +116,8 @@ class Tools:
         except Exception, e:
             key_chain = 'Fail ' + str(e)
         return key_chain
+
+
 try:
     if __name__ == '__main__':
         # declare main monitoring script
@@ -142,7 +145,6 @@ try:
             print "4444"
         else:
             if return_value == 'OK':
-
                 # Get the zabbix post in list format from a string
                 zabbix_pods_to_check = atool.convert_string_to_list_bidimentional(key_chain, "&", "=")
                 # Check if path to kubectl config was given.
