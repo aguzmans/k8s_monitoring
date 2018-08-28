@@ -4,10 +4,10 @@ Development phase. This is tested in Linux:
 You should put it on the agent_bin folder.
 this file should be accesible by the Zabbix user.
 
-2- Edit the configuration file of the agent to have a line like this.&nbsp;
+2- Edit the configuration file of the agent to have a line like this.
 <code>
-UserParameter=kubernetes.pods_count[*],                    python /var/lib/nc_zabbix/agent_bin/k8s_command.py $1 $2 $3 $4 $5 $6 &nbsp;
-UserParameter=kubernetes.pods_count_broken[*],             python /var/lib/nc_zabbix/agent_bin/k8s_command.py $1 $2 $3 $4 $5 &nbsp;
+UserParameter=kubernetes.pods_count[*],                    python /var/lib/nc_zabbix/agent_bin/k8s_command.py $1 $2 $3 $4 $5 $6 
+UserParameter=kubernetes.pods_count_broken[*],             python /var/lib/nc_zabbix/agent_bin/k8s_command.py $1 $2 $3 $4 $5 $6 
 
 </code>
 
