@@ -63,14 +63,16 @@ class Kubernetes_monitoring:
         """Function to compare the kubernetes output @k8s_list and the zabbix macro @zabbix_list this retusn the same
         Zabbix list with a third value set to True or False in @zabbix_list at return time"""
         # print zabbix_list
+        reason = ''
         for key_zabbix, a_zabbix_service in enumerate(zabbix_list):
             exist_in_k8s = False
             count = len(k8s_list)
             found = 0
-            reason = ''
+            aux_found_at = list()
             for i_k8s in range(0, count):
                 if a_zabbix_service[0] in k8s_list[i_k8s][0]:
                     found += int(k8s_list[i_k8s][1][0])
+                    aux_found_at.append(k8s_list[i_k8s])
                 #check if we found any at the last execution of the search.
                 if count - 1 == i_k8s and found > 0:
                     # if found more or equal to sabbix config number then OK
@@ -78,8 +80,10 @@ class Kubernetes_monitoring:
                         exist_in_k8s = True
                     # else is found but not as many
                     elif found > 0 and found < int(a_zabbix_service[1]):
-                        reason = 'not enogu PODs for: ' + a_zabbix_service[0] + ', need: ' + a_zabbix_service[1] + \
-                                 ', but found: ' + str(found)
+                        for l_key, l_value in enumerate(aux_found_at):
+                            if l_value[2] > 0:
+                                reason = self.__k8s_fail_reason(l_value, a_zabbix_service[0], a_tools,
+                                                        k8s_config_path, k8s_nemespace, 2)
                     # Asume other type of failure need to check error
                     else:
                         # Assume FAIL count is lower
@@ -95,10 +99,11 @@ class Kubernetes_monitoring:
 
     def __k8s_fail_reason(self, a_pod_output, a_zabbix_pod, a_tools,
                           k8s_config_path, k8s_nemespace, restarts_possition=2):
+        # print a_pod_output
         a_pod_name = a_pod_output[0]
-        fail_details = 'Fail: ' + a_pod_name
-        print a_zabbix_pod
-        print a_pod_name.find(a_zabbix_pod)
+        fail_details = 'Fail: ' + a_zabbix_pod
+        # print a_zabbix_pod
+        # print a_pod_name.find(a_zabbix_pod)
         if a_pod_name.find(a_zabbix_pod) >= 0:
             # 1- check restarts count of the pod
             # 2- if restarts greater than 0
@@ -107,14 +112,18 @@ class Kubernetes_monitoring:
                 # 3- then check the descriptiong and find error vs reason'
                 shell_command = 'kubectl describe pods ' + a_pod_name + ' ' + k8s_config_path
                 if k8s_nemespace is not None and k8s_namespace != '':
-                    shell_command = shell_command + ' --namespace=' + k8s_nemespace
+                    shell_command = shell_command + ' ' + k8s_nemespace
+                    # print shell_command
                 k8s_describe_pod = a_tools.main_execution_function(shell_command)
                 describe_output = ''
                 if k8s_describe_pod[0] == 0:
                     describe_output = string.split(k8s_describe_pod[1], '\n')
+                    count = 0;
                 for h_key, h_value in enumerate(describe_output):
-                    if 'Last State:' in h_value or 'Reason' in h_value:
+                    if 'Last State:' in h_value or 'Reason' in h_value and count < 3:
                         fail_details = fail_details + ', ' + ' '.join(h_value.split())
+                        count += 1
+
         else:
             fail_details = fail_details + ' POD not found'
 
@@ -210,13 +219,22 @@ try:
                 # Check if all is OK or some are Failed
                 counter_final = len(k8s_running_result)
                 global_success = False
+                # initialize just in case needs to be used
+                fail_message = ''
                 for key_result, a_k8s_running_result in enumerate(k8s_running_result):  # type: (int, object)
                     if not k8s_running_result[key_result][2]:
                         # CALL NEW function to add output!!!! pass it: k8s_running_result[key_result][2], k8s_clean_list
                         #kube_obj.k8s_fail_reason(k8s_running_result[key_result], k8s_clean_list)
-                        print k8s_running_result[key_result][3]
-                        break
+                        if fail_message == '':
+                            fail_message += k8s_running_result[key_result][3]
+                        else:
+                            fail_message += ', ' + k8s_running_result[key_result][3]
                     elif k8s_running_result[key_result][2] == True and counter_final - 1 == key_result:
                             print 'OK'
+
+                    if key_result + 1 >= len(k8s_running_result) and fail_message != '':
+                        print fail_message
+                        break
+
 except Exception, e:
-    print 'Fail ' + str(e)
+     print 'Fail ' + str(e)
