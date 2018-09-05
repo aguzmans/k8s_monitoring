@@ -221,6 +221,7 @@ try:
                 global_success = False
                 # initialize just in case needs to be used
                 fail_message = ''
+                count_ok = 0
                 for key_result, a_k8s_running_result in enumerate(k8s_running_result):  # type: (int, object)
                     if not k8s_running_result[key_result][2]:
                         # CALL NEW function to add output!!!! pass it: k8s_running_result[key_result][2], k8s_clean_list
@@ -229,12 +230,19 @@ try:
                             fail_message += k8s_running_result[key_result][3]
                         else:
                             fail_message += ', ' + k8s_running_result[key_result][3]
-                    elif k8s_running_result[key_result][2] == True and counter_final - 1 == key_result:
-                            print 'OK'
+                    elif k8s_running_result[key_result][2] == True:
+                        count_ok += 1
+                        # and counter_final - 1 == key_result:
+                        # print 'OK'
 
                     if key_result + 1 >= len(k8s_running_result) and fail_message != '':
                         print fail_message
                         break
+                    elif count_ok == len(k8s_running_result):
+                        print 'OK'
+                        break
+                    elif key_result + 1 >= len(k8s_running_result):
+                        print 'Failed with unknown reason: ', k8s_running_result[key_result][2]
 
 except Exception, e:
      print 'Fail ' + str(e)
